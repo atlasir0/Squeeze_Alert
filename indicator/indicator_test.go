@@ -53,10 +53,6 @@ func readCSV(filename string) (*TestData, error) {
 	return &testData, nil
 }
 
-func assignValue(values []float64, index int, expectedLine float64) {
-	values[index] = expectedLine
-}
-
 func runSqueezeTest(t *testing.T, filename string) {
 	testData, err := readCSV(filename)
 	if err != nil {
@@ -70,23 +66,32 @@ func runSqueezeTest(t *testing.T, filename string) {
 		if i < indicator.KCLength-1 {
 			continue
 		}
-
-		assignValue(values, i, testData.ExpectedLines[i])
-
-		t.Logf("Индекс %d: Ожидалось Line = %.6f, Получено Line = %.6f, Ожидалось Squeeze = %v, Получено Squeeze = %v",
-			i, testData.ExpectedLines[i], values[i], testData.ExpectedSqueeze[i] == 1, sqzOn[i])
-
 		if !math.IsNaN(testData.ExpectedLines[i]) {
 			assert.Equal(t, testData.ExpectedLines[i], values[i], "Ошибка в Line на индексе %d", i)
 		}
 
+		assert.Equal(t, testData.ExpectedSqueeze[i] == 1, sqzOn[i], "Ошибка в Squeeze на индексе %d", i)
 	}
 }
 
 func TestSqueezeCSV(t *testing.T) {
-	runSqueezeTest(t, "files/BINANCE_1000BONKUSDT.P, 1 (1).csv")
-}
+	tests := []struct {
+		name     string
+		filename string
+	}{
+		{
+			name:     "BINANCE_1000BONKUSDT",
+			filename: "files/BINANCE_1000BONKUSDT.P, 1 (1).csv",
+		},
+		{
+			name:     "BITSTAMP_BTCUSD",
+			filename: "files/BITSTAMP_BTCUSD.csv",
+		},
+	}
 
-func TestSqueezeWithCSV2(t *testing.T) {
-	runSqueezeTest(t, "files/BITSTAMP_BTCUSD.csv")
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			runSqueezeTest(t, tt.filename)
+		})
+	}
 }
