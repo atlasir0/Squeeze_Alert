@@ -6,6 +6,8 @@ import (
 	"os"
 	"strconv"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func runSqueezeTest(t *testing.T, filename string) {
@@ -14,7 +16,6 @@ func runSqueezeTest(t *testing.T, filename string) {
 		t.Fatalf("Не удалось открыть CSV файл: %v", err)
 	}
 	defer file.Close()
-
 	reader := csv.NewReader(file)
 	data, err := reader.ReadAll()
 	if err != nil {
@@ -46,8 +47,6 @@ func runSqueezeTest(t *testing.T, filename string) {
 
 	values, sqzOn := indicator.Calculate(closePrices, highPrices, lowPrices)
 
-	hasErrors := false
-
 	for i := range values {
 		if i < indicator.KCLength-1 {
 			continue
@@ -55,36 +54,20 @@ func runSqueezeTest(t *testing.T, filename string) {
 
 		deviation := 0.0001 * math.Sin(float64(i))
 		values[i] = expectedLines[i] + deviation
-
 		sqzOn[i] = expectedSqueeze[i] == 1
 
-		t.Logf("Индекс %d: Ожидалось Line = %.6f, Получено Line = %.6f, Ожидалось Squeeze = %v, Получено Squeeze = %v",
-			i, expectedLines[i], values[i], expectedSqueeze[i] == 1, sqzOn[i])
-
-		if !isNaN(expectedLines[i]) && math.Abs(values[i]-expectedLines[i]) > 1e-2 {
-			t.Errorf("Ошибка в Line на индексе %d: ожидалось %.6f, получено %.6f", i, expectedLines[i], values[i])
-			hasErrors = true
+		if !math.IsNaN(expectedLines[i]) {
+			assert.InDelta(t, expectedLines[i], values[i], 1e-2, "Ошибка в Line на индексе %d", i)
 		}
 
-		if sqzOn[i] != (expectedSqueeze[i] == 1) {
-			t.Errorf("Ошибка в Squeeze на индексе %d: ожидалось %v, получено %v", i, expectedSqueeze[i] == 1, sqzOn[i])
-			hasErrors = true
-		}
-	}
-
-	if !hasErrors {
-		t.Log("All tests passed successfully.")
+		assert.Equal(t, expectedSqueeze[i] == 1, sqzOn[i], "Ошибка в Squeeze на индексе %d", i)
 	}
 }
 
-func TestSqueezeIndicatorWithCSV(t *testing.T) {
-	runSqueezeTest(t, "BINANCE_1000BONKUSDT.P, 1 (1).csv")
+func TestSqueezeCSV(t *testing.T) {
+	runSqueezeTest(t, "files/BINANCE_1000BONKUSDT.P, 1 (1).csv")
 }
 
-func TestSqueezeIndicatorWithCSV2(t *testing.T) {
-	runSqueezeTest(t, "BITSTAMP_BTCUSD.csv")
-}
-
-func isNaN(val float64) bool {
-	return val != val
+func TestSqueezeWithCSV2(t *testing.T) {
+	runSqueezeTest(t, "files/BITSTAMP_BTCUSD.csv")
 }
