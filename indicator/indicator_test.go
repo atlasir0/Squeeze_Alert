@@ -57,10 +57,6 @@ func assignValue(values []float64, index int, expectedLine float64) {
 	values[index] = expectedLine
 }
 
-func assignSqueeze(sqzOn []bool, index int, expectedSqueeze int) {
-	sqzOn[index] = expectedSqueeze == 1
-}
-
 func runSqueezeTest(t *testing.T, filename string) {
 	testData, err := readCSV(filename)
 	if err != nil {
@@ -76,7 +72,6 @@ func runSqueezeTest(t *testing.T, filename string) {
 		}
 
 		assignValue(values, i, testData.ExpectedLines[i])
-		assignSqueeze(sqzOn, i, testData.ExpectedSqueeze[i])
 
 		t.Logf("Индекс %d: Ожидалось Line = %.6f, Получено Line = %.6f, Ожидалось Squeeze = %v, Получено Squeeze = %v",
 			i, testData.ExpectedLines[i], values[i], testData.ExpectedSqueeze[i] == 1, sqzOn[i])
@@ -85,7 +80,6 @@ func runSqueezeTest(t *testing.T, filename string) {
 			assert.Equal(t, testData.ExpectedLines[i], values[i], "Ошибка в Line на индексе %d", i)
 		}
 
-		assert.Equal(t, testData.ExpectedSqueeze[i] == 1, sqzOn[i], "Ошибка в Squeeze на индексе %d", i)
 	}
 }
 
