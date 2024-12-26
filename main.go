@@ -17,8 +17,8 @@ func main() {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Header().Set("Content-Type", "application/json")
 
-		ind := indicator.NewSqueezeIndicator(20, 20, 2.0, 1.5, true)
-		values, sqzOn, _ := ind.Calculate(closePrices, highPrices, lowPrices)
+		ind := indicator.NewSqueezeIndicator(20, 20, 2.0, 1.5, true, 0)
+		values, sqzOn := ind.Calculate(closePrices, highPrices, lowPrices)
 
 		data := make([]map[string]interface{}, len(values))
 		for i := range values {
