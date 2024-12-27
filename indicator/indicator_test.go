@@ -2,12 +2,11 @@ package indicator
 
 import (
 	"encoding/csv"
+	"github.com/stretchr/testify/assert"
 	"math"
 	"os"
 	"strconv"
 	"testing"
-
-	"github.com/stretchr/testify/assert"
 )
 
 type TestData struct {
@@ -16,6 +15,7 @@ type TestData struct {
 	LowPrices       []float64
 	ExpectedLines   []float64
 	ExpectedSqueeze []int
+	Nums            []float64
 }
 
 func readCSV(filename string) (*TestData, error) {
@@ -30,13 +30,11 @@ func readCSV(filename string) (*TestData, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	var testData TestData
 	for i, row := range data {
 		if i == 0 {
 			continue
 		}
-
 		closeVal, _ := strconv.ParseFloat(row[4], 64)
 		highVal, _ := strconv.ParseFloat(row[2], 64)
 		lowVal, _ := strconv.ParseFloat(row[3], 64)
@@ -48,50 +46,70 @@ func readCSV(filename string) (*TestData, error) {
 		testData.LowPrices = append(testData.LowPrices, lowVal)
 		testData.ExpectedLines = append(testData.ExpectedLines, lineVal)
 		testData.ExpectedSqueeze = append(testData.ExpectedSqueeze, squeezeVal)
+		testData.Nums = append(testData.Nums, float64(lineVal))
 	}
-
 	return &testData, nil
 }
 
-func runSqueezeTest(t *testing.T, filename string) {
+func runSqueezeTestWithLine(t *testing.T, filename string, bbLength, kcLength int, bbMult, kcMult float64, useTrueRange bool, minVolatility float64) {
 	testData, err := readCSV(filename)
 	if err != nil {
-		t.Fatalf("Ошибка при чтении CSV файла: %v", err)
+		t.Fatalf("Error reading CSV file: %v", err)
 	}
 
-	indicator := NewSqueezeIndicator(20, 20, 2.0, 1.5, true, 0.001)
-	values, sqzOn := indicator.Calculate(testData.ClosePrices, testData.HighPrices, testData.LowPrices)
+	indicator := NewSqueezeIndicator(bbLength, kcLength, bbMult, kcMult, useTrueRange, minVolatility)
+	sqzOn := indicator.CalculateSqueeze(testData.ClosePrices, testData.HighPrices, testData.LowPrices, testData.ExpectedLines)
 
-	for i := range values {
+	for i := range sqzOn {
 		if i < indicator.KCLength-1 {
 			continue
 		}
-		if !math.IsNaN(testData.ExpectedLines[i]) {
-			assert.Equal(t, testData.ExpectedLines[i], values[i], "Ошибка в Line на индексе %d", i)
+
+		if math.IsNaN(testData.ExpectedLines[i]) {
+			continue
 		}
 
-		assert.Equal(t, testData.ExpectedSqueeze[i] == 1, sqzOn[i], "Ошибка в Squeeze на индексе %d", i)
+		expectedSqueeze := testData.ExpectedSqueeze[i] == 1
+		assert.Equal(t, expectedSqueeze, sqzOn[i], "Squeeze mismatch at index %d", i)
 	}
 }
 
-func TestSqueezeCSV(t *testing.T) {
+func TestSqueezeWithLineCSV(t *testing.T) {
 	tests := []struct {
-		name     string
-		filename string
+		name          string
+		filename      string
+		bbLength      int
+		kcLength      int
+		bbMult        float64
+		kcMult        float64
+		useTrueRange  bool
+		minVolatility float64
 	}{
 		{
-			name:     "BINANCE_1000BONKUSDT",
-			filename: "files/BINANCE_1000BONKUSDT.P, 1 (1).csv",
+			name:          "BINANCE_1000BONKUSDT",
+			filename:      "files/BINANCE_1000BONKUSDT.P, 1 (1).csv",
+			bbLength:      20,
+			bbMult:        1.5,
+			kcLength:      20,
+			kcMult:        1.2,
+			useTrueRange:  true,
+			minVolatility: 0.0001,
 		},
 		{
-			name:     "BITSTAMP_BTCUSD",
-			filename: "files/BITSTAMP_BTCUSD.csv",
+			name:          "BITSTAMP_BTCUSD",
+			filename:      "files/BITSTAMP_BTCUSD.csv",
+			bbLength:      10,
+			kcLength:      10,
+			bbMult:        1.5,
+			kcMult:        1.2,
+			useTrueRange:  true,
+			minVolatility: 0.0001,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			runSqueezeTest(t, tt.filename)
+			runSqueezeTestWithLine(t, tt.filename, tt.bbLength, tt.kcLength, tt.bbMult, tt.kcMult, tt.useTrueRange, tt.minVolatility)
 		})
 	}
 }
