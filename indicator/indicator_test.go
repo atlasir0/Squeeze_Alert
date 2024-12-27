@@ -63,7 +63,6 @@ func runSqueezeTestWithLine(t *testing.T, filename string, bbLength, kcLength in
 
 	indicator := NewSqueezeIndicator(bbLength, kcLength, bbMult, kcMult, useTrueRange, minVolatility)
 	sqzOn := indicator.CalculateSqueeze(testData.ClosePrices, testData.HighPrices, testData.LowPrices, testData.ExpectedLines)
-
 	checkSqueeze := isNaN(testData.ExpectedLines[0])
 
 	for i := range sqzOn {
