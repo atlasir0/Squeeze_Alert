@@ -63,7 +63,7 @@ func runSqueezeTestWithLine(t *testing.T, filename string, bbLength, kcLength in
 
 	indicator := NewSqueezeIndicator(bbLength, kcLength, bbMult, kcMult, useTrueRange, minVolatility)
 	sqzOn := indicator.CalculateSqueeze(testData.ClosePrices, testData.HighPrices, testData.LowPrices, testData.ExpectedLines)
-	checkSqueeze := isNaN(testData.ExpectedLines[0])
+	checkSqueeze := !isNaN(testData.ExpectedLines[0])
 
 	for i := range sqzOn {
 		if i < indicator.KCLength-1 {
@@ -78,7 +78,7 @@ func runSqueezeTestWithLine(t *testing.T, filename string, bbLength, kcLength in
 			assert.InEpsilon(t, testData.ExpectedLines[i], testData.Nums[i], 1e-6, "Line mismatch at index %d", i)
 		}
 
-		if checkSqueeze {
+		if !checkSqueeze {
 			expectedSqueeze := testData.ExpectedSqueeze[i] == 1
 			assert.Equal(t, expectedSqueeze, sqzOn[i], "Squeeze mismatch at index %d", i)
 		}
