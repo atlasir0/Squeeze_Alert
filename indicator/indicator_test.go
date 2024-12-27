@@ -51,6 +51,10 @@ func readCSV(filename string) (*TestData, error) {
 	return &testData, nil
 }
 
+func isNaN(value float64) bool {
+	return math.IsNaN(value) || value == 0
+}
+
 func runSqueezeTestWithLine(t *testing.T, filename string, bbLength, kcLength int, bbMult, kcMult float64, useTrueRange bool, minVolatility float64) {
 	testData, err := readCSV(filename)
 	if err != nil {
@@ -60,17 +64,25 @@ func runSqueezeTestWithLine(t *testing.T, filename string, bbLength, kcLength in
 	indicator := NewSqueezeIndicator(bbLength, kcLength, bbMult, kcMult, useTrueRange, minVolatility)
 	sqzOn := indicator.CalculateSqueeze(testData.ClosePrices, testData.HighPrices, testData.LowPrices, testData.ExpectedLines)
 
+	checkSqueeze := isNaN(testData.ExpectedLines[0])
+
 	for i := range sqzOn {
 		if i < indicator.KCLength-1 {
 			continue
 		}
 
-		if math.IsNaN(testData.ExpectedLines[i]) {
+		if isNaN(testData.ExpectedLines[i]) {
 			continue
 		}
 
-		expectedSqueeze := testData.ExpectedSqueeze[i] == 1
-		assert.Equal(t, expectedSqueeze, sqzOn[i], "Squeeze mismatch at index %d", i)
+		if !isNaN(testData.ExpectedLines[i]) {
+			assert.InEpsilon(t, testData.ExpectedLines[i], testData.Nums[i], 1e-6, "Line mismatch at index %d", i)
+		}
+
+		if checkSqueeze {
+			expectedSqueeze := testData.ExpectedSqueeze[i] == 1
+			assert.Equal(t, expectedSqueeze, sqzOn[i], "Squeeze mismatch at index %d", i)
+		}
 	}
 }
 
